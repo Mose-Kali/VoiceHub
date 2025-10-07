@@ -62,11 +62,11 @@
             </div>
             <div v-else class="status-content-horizontal">
 
-              <div v-if="submissionStatus.weeklyLimit" class="status-item-horizontal">
-                <span class="status-label">本周投稿：</span>
-                <span class="status-value">{{ submissionStatus.weeklyUsed }} / {{ submissionStatus.weeklyLimit }}</span>
+              <div v-if="submissionStatus.dailyLimit" class="status-item-horizontal">
+                <span class="status-label">今日投稿：</span>
+                <span class="status-value">{{ submissionStatus.dailyUsed }} / {{ submissionStatus.dailyLimit }}</span>
                 <span class="status-remaining">剩余 {{
-                    Math.max(0, submissionStatus.weeklyLimit - submissionStatus.weeklyUsed)
+                    Math.max(0, submissionStatus.dailyLimit - submissionStatus.dailyUsed)
                   }}</span>
               </div>
 
