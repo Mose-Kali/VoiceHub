@@ -43,9 +43,14 @@
         <!-- 搜索结果容器 -->
         <div class="search-results-container">
           <!-- 投稿状态显示 - 横向布局，只在设置了限额时显示 -->
-          <div v-if="user && submissionStatus && submissionStatus.limitEnabled" class="submission-status-horizontal">
+          <div v-if="(user && submissionStatus && submissionStatus.limitEnabled) || (requestTimeStatus && (!requestTimeStatus.hit || requestTimeStatus.enabled))" class="submission-status-horizontal">
+
+            <div v-if="requestTimeStatus && (!requestTimeStatus.hit || requestTimeStatus.accepted >= requestTimeStatus.expected)" class="submission-closed-notice">
+              <span class="closed-icon">🚫</span>
+              <span class="closed-text">投稿功能已关闭</span>
+            </div>
             <!-- 超级管理员提示 -->
-            <div v-if="user && (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN')" class="admin-notice-horizontal">
+            <div v-else-if="user && (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') && (requestTimeStatus && !requestTimeStatus.enabled)" class="admin-notice-horizontal">
               <span class="admin-icon">👑</span>
               <span class="admin-text">您是管理员，不受投稿限制</span>
             </div>
@@ -55,14 +60,13 @@
               <span class="closed-icon">🚫</span>
               <span class="closed-text">投稿功能已关闭</span>
             </div>
-
-            <!-- 投稿状态内容 -->
             <div v-else class="status-content-horizontal">
-              <div v-if="submissionStatus.dailyLimit" class="status-item-horizontal">
-                <span class="status-label">今日投稿：</span>
-                <span class="status-value">{{ submissionStatus.dailyUsed }} / {{ submissionStatus.dailyLimit }}</span>
+
+              <div v-if="submissionStatus.weeklyLimit" class="status-item-horizontal">
+                <span class="status-label">本周投稿：</span>
+                <span class="status-value">{{ submissionStatus.weeklyUsed }} / {{ submissionStatus.weeklyLimit }}</span>
                 <span class="status-remaining">剩余 {{
-                    Math.max(0, submissionStatus.dailyLimit - submissionStatus.dailyUsed)
+                    Math.max(0, submissionStatus.weeklyLimit - submissionStatus.weeklyUsed)
                   }}</span>
               </div>
 
@@ -71,6 +75,17 @@
                 <span class="status-value">{{ submissionStatus.weeklyUsed }} / {{ submissionStatus.weeklyLimit }}</span>
                 <span class="status-remaining">剩余 {{
                     Math.max(0, submissionStatus.weeklyLimit - submissionStatus.weeklyUsed)
+                  }}</span>
+              </div>
+            </div>
+
+            <!-- 投稿状态内容 -->
+            <div v-if="requestTimeStatus && requestTimeStatus.hit" class="status-content-horizontal">
+              <div v-if="(requestTimeStatus && requestTimeStatus.enabled)" class="status-item-horizontal">
+                <span class="status-label">已投稿：</span>
+                <span class="status-value">{{ requestTimeStatus.accepted }} / {{ requestTimeStatus.expected }}</span>
+                <span class="status-remaining">剩余 {{
+                    Math.max(0, requestTimeStatus.expected - requestTimeStatus.accepted)
                   }}</span>
               </div>
             </div>
@@ -450,6 +465,8 @@ const loadingPlayTimes = ref(false)
 const submissionStatus = ref(null)
 const loadingSubmissionStatus = ref(false)
 
+const requestTimeStatus = ref(null)
+
 // 重复歌曲弹窗相关
 const showDuplicateModal = ref(false)
 const duplicateSong = ref(null)
@@ -502,10 +519,23 @@ const fetchPlayTimes = async () => {
   }
 }
 
+const fetchRequestTimesStatus = async () => {
+  try {
+    const response = await fetch('/api/request-times')
+    if (response.ok) {
+      requestTimeStatus.value = await response.json()
+      console.log(requestTimeStatus.value)
+    }
+  } catch (err) {
+    console.error('获取开放时段状态失败:', err)
+  }
+}
+
 onMounted(async () => {
   fetchPlayTimes()
   initSiteConfig()
   fetchSubmissionStatus()
+  fetchRequestTimesStatus()
   // 获取当前学期
   await fetchCurrentSemester()
   // 只有在用户已登录时才加载歌曲列表以便检查相似歌曲
