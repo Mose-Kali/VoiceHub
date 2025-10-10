@@ -1,33 +1,49 @@
 <template>
   <div class="play-time-manager">
-    <div class="header-section">
-      <h2 class="title">投稿管理
-      </h2>
-      <div class="settings-toggle">
-        <span class="label">投稿功能</span>
-        <label class="toggle-switch">
-          <input v-model="enableRequest" type="checkbox" @change="updateSystemSettings">
-          <span class="slider round"></span>
-        </label>
-        <span class="status-text">{{ enableRequest ? '已开启' : '已关闭' }}</span>
+    <!-- 页面标题 -->
+    <h2 class="page-title">投稿管理</h2>
+    
+    <!-- 配置区域 -->
+    <div class="config-section">
+      <!-- 投稿功能主开关 -->
+      <div class="main-toggle-section">
+        <div class="toggle-item">
+          <span class="label">投稿功能</span>
+          <label class="toggle-switch">
+            <input v-model="enableRequest" type="checkbox" @change="updateSystemSettings">
+            <span class="slider round"></span>
+          </label>
+          <span class="status-text">{{ enableRequest ? '已开启' : '已关闭' }}</span>
+        </div>
+      </div>
+      
+      <!-- 开放时间配置区域 -->
+      <div v-if="enableRequest" class="time-config-section">
+        <div class="section-header">
+          <h4 class="section-title">开放时间配置</h4>
+          <p class="section-description">配置投稿功能的时间限制设置</p>
+        </div>
         
-        <div v-if="enableRequest" class="time-limitation-setting">
+        <div class="toggle-item">
           <span class="label">使用投稿开放时段限制</span>
           <label class="toggle-switch">
             <input v-model="enableRequestTimeLimitation" type="checkbox" @change="updateSystemSettings">
             <span class="slider round"></span>
           </label>
           <span class="status-text">{{ enableRequestTimeLimitation ? '已启用' : '已禁用' }}</span>
-          
-          <div v-if="enableRequestTimeLimitation" class="current-status">
-            <span class="label">当前时段状态：</span>
-            <div :class="{ 'enabled': hitRequestTime, 'disabled': !hitRequestTime }" class="status-badge">
-              {{ hitRequestTime ? '开放中' : '已关闭' }}
-            </div>
+        </div>
+        
+        <div v-if="enableRequestTimeLimitation" class="current-status">
+          <span class="label">当前时段状态：</span>
+          <div :class="{ 'enabled': hitRequestTime, 'disabled': !hitRequestTime }" class="status-badge">
+            {{ hitRequestTime ? '开放中' : '已关闭' }}
           </div>
         </div>
       </div>
     </div>
+
+    <!-- 分割线 -->
+    <div class="section-divider"></div>
 
     <!-- 投稿限额设置 -->
     <div class="submission-limits-section">
@@ -775,8 +791,9 @@ const cancelForm = () => {
   backdrop-filter: blur(10px);
 }
 
-.title {
-  margin: 0 0 1.5rem 0;
+/* 页面标题样式 */
+.page-title {
+  margin: 0 0 2rem 0;
   font-size: 1.5rem;
   font-weight: 700;
   color: #ffffff;
@@ -785,18 +802,57 @@ const cancelForm = () => {
   gap: 0.75rem;
 }
 
-.title::before {
+.page-title::before {
   content: "📝";
   font-size: 1.3rem;
 }
 
-.settings-toggle {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
+/* 配置区域容器 */
+.config-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
 }
 
-.settings-toggle > div:first-child {
+/* 分割线样式 */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  margin: 2rem 0;
+  position: relative;
+}
+
+.section-divider::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 5px;
+  background: linear-gradient(90deg, rgba(79, 70, 229, 0.3), rgba(34, 197, 94, 0.3));
+  border-radius: 2px;
+}
+
+/* 投稿限额设置区域 */
+.submission-limits-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+/* 主开关区域 */
+.main-toggle-section {
+  margin-bottom: 1.5rem;
+}
+
+.toggle-item {
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -807,43 +863,62 @@ const cancelForm = () => {
   transition: all 0.3s ease;
 }
 
-.settings-toggle > div:first-child:hover {
+.toggle-item:hover {
   background: rgba(79, 70, 229, 0.12);
   border-color: rgba(79, 70, 229, 0.25);
 }
 
-.time-limitation-setting {
-  margin-left: 1.5rem;
-  padding: 1rem 0 1rem 1.5rem;
-  border-left: 3px solid rgba(79, 70, 229, 0.3);
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 0 8px 8px 0;
-  transition: all 0.3s ease;
+/* 开放时间配置区域 */
+.time-config-section {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  border-left: 4px solid rgba(34, 197, 94, 0.4);
 }
 
-.time-limitation-setting:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-left-color: rgba(79, 70, 229, 0.5);
+.section-header {
+  margin-bottom: 1rem;
 }
 
-.time-limitation-setting > div:first-child {
+.section-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ffffff;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.75rem;
+  gap: 0.5rem;
+}
+
+.section-title::before {
+  content: "⏰";
+  font-size: 1rem;
+}
+
+.section-description {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #a3a3a3;
+  line-height: 1.4;
+}
+
+.time-config-section .toggle-item {
   background: rgba(34, 197, 94, 0.08);
   border: 1px solid rgba(34, 197, 94, 0.15);
-  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.time-config-section .toggle-item:hover {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.25);
 }
 
 .current-status {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-left: 1.5rem;
   padding: 0.75rem 1rem;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1216,15 +1291,7 @@ input:checked + .slider:before {
   padding: 1.5rem;
 }
 
-/* 投稿限额设置区域样式 */
-.submission-limits-section {
-  margin-top: 2rem;
-  padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
-}
+
 
 .section-title {
   margin: 0 0 1.5rem 0;
@@ -1481,30 +1548,42 @@ textarea.form-control {
     margin-bottom: 1rem;
   }
 
-  .settings-toggle > div:first-child {
+  .main-toggle-section {
+    margin-bottom: 1rem;
+  }
+
+  .toggle-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
     padding: 0.875rem;
   }
 
-  .time-limitation-setting {
-    margin-left: 0;
-    padding: 0.875rem;
-    border-left: none;
-    border-top: 3px solid rgba(79, 70, 229, 0.3);
-    border-radius: 8px;
+  .time-config-section {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-left-width: 3px;
   }
 
-  .time-limitation-setting > div:first-child {
+  .section-title {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .section-description {
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .time-config-section .toggle-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
-    padding: 0.5rem;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
   }
 
   .current-status {
-    margin-left: 0;
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
@@ -1566,52 +1645,28 @@ textarea.form-control {
     font-size: 1.1rem;
   }
 
-  .settings-toggle {
-    gap: 1rem;
-  }
-
-  .settings-toggle > div:first-child {
+  .toggle-item {
+    gap: 0.5rem;
     padding: 0.75rem;
   }
 
-  .time-limitation-setting {
-    padding: 0.75rem;
-  }
-
-  .submission-limits-section {
+  .time-config-section {
     padding: 0.75rem;
   }
 
   .section-title {
-    font-size: 1rem;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.25rem;
+    font-size: 0.95rem;
   }
 
-  .submission-limits {
-    padding: 0.75rem;
+  .section-description {
+    font-size: 0.75rem;
   }
 
-  .limit-type-selection {
-    padding: 0.75rem;
-  }
-
-  .checkbox-label,
-  .radio-label {
+  .label {
     font-size: 0.8rem;
   }
 
-  .form-group label {
-    font-size: 0.8rem;
-  }
-
-  .form-group input[type="number"] {
-    padding: 0.625rem 0.75rem;
-    font-size: 0.8rem;
-  }
-
-  .help-text {
+  .status-text {
     font-size: 0.7rem;
   }
 }
