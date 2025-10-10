@@ -45,24 +45,24 @@
           <!-- 投稿状态显示 - 横向布局，只在设置了限额时显示 -->
           <div v-if="(user && submissionStatus && submissionStatus.limitEnabled) || (requestTimeStatus && (!requestTimeStatus.hit || requestTimeStatus.enabled))" class="submission-status-horizontal">
 
-            <div v-if="requestTimeStatus && (!requestTimeStatus.hit || requestTimeStatus.accepted >= requestTimeStatus.expected)" class="submission-closed-notice">
-              <span class="closed-icon">�</span>
-              <span class="closed-text">投稿功能已关闭</span>
-            </div>
-            <!-- 超级管理员提示 -->
-            <div v-else-if="user && (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') && (requestTimeStatus && !requestTimeStatus.enabled)" class="admin-notice-horizontal">
-              <span class="admin-icon">�</span>
-              <span class="admin-text">您是管理员，不受投稿限制</span>
-            </div>
-
-            <!-- 投稿关闭提示 -->
-            <div v-else-if="submissionStatus.submissionClosed" class="submission-closed-notice">
+            <!-- 投稿时段关闭提示 -->
+            <div v-if="requestTimeStatus && (!requestTimeStatus.hit || (requestTimeStatus.expected > 0 && requestTimeStatus.accepted >= requestTimeStatus.expected))" class="submission-closed-notice">
               <span class="closed-icon">🚫</span>
               <span class="closed-text">投稿功能已关闭</span>
             </div>
+            <!-- 投稿限额关闭提示 -->
+            <div v-else-if="submissionStatus && submissionStatus.submissionClosed" class="submission-closed-notice">
+              <span class="closed-icon">🚫</span>
+              <span class="closed-text">投稿功能已关闭</span>
+            </div>
+            <!-- 超级管理员提示 -->
+            <div v-else-if="user && (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN')" class="admin-notice-horizontal">
+              <span class="admin-icon">👑</span>
+              <span class="admin-text">您是管理员，不受投稿限制</span>
+            </div>
             <div v-else class="status-content-horizontal">
 
-              <div v-if="submissionStatus.dailyLimit" class="status-item-horizontal">
+              <div v-if="submissionStatus && submissionStatus.dailyLimit" class="status-item-horizontal">
                 <span class="status-label">今日投稿：</span>
                 <span class="status-value">{{ submissionStatus.dailyUsed }} / {{ submissionStatus.dailyLimit }}</span>
                 <span class="status-remaining">剩余 {{
@@ -70,7 +70,7 @@
                   }}</span>
               </div>
 
-              <div v-if="submissionStatus.weeklyLimit" class="status-item-horizontal">
+              <div v-if="submissionStatus && submissionStatus.weeklyLimit" class="status-item-horizontal">
                 <span class="status-label">本周投稿：</span>
                 <span class="status-value">{{ submissionStatus.weeklyUsed }} / {{ submissionStatus.weeklyLimit }}</span>
                 <span class="status-remaining">剩余 {{
@@ -80,11 +80,12 @@
             </div>
 
             <!-- 投稿状态内容 -->
-            <div v-if="requestTimeStatus && requestTimeStatus.hit" class="status-content-horizontal">
+            <div v-if="requestTimeStatus && requestTimeStatus.hit && !(user && (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN'))" class="status-content-horizontal">
               <div v-if="(requestTimeStatus && requestTimeStatus.enabled)" class="status-item-horizontal">
-                <span class="status-label">已投稿：</span>
-                <span class="status-value">{{ requestTimeStatus.accepted }} / {{ requestTimeStatus.expected }}</span>
-                <span class="status-remaining">剩余 {{
+                <span class="status-label">本周期剩余可投稿数量：</span>
+                <span v-if="requestTimeStatus.expected === 0" class="status-value unlimited">无数量限制</span>
+                <span v-else class="status-value">{{ requestTimeStatus.accepted }} / {{ requestTimeStatus.expected }}</span>
+                <span v-if="requestTimeStatus.expected > 0" class="status-remaining">剩余 {{
                     Math.max(0, requestTimeStatus.expected - requestTimeStatus.accepted)
                   }}</span>
               </div>
@@ -1672,6 +1673,11 @@ defineExpose({
   font-weight: 600;
   font-size: 14px;
   color: #0B5AFE;
+}
+
+.status-item-horizontal .status-value.unlimited {
+  color: #00D084;
+  font-weight: 700;
 }
 
 .status-item-horizontal .status-remaining {

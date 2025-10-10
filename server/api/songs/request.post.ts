@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
                 message: '投稿功能已关闭'
             })
         }
-        if (enableRequestTimeLimitation && user.role !== 'SUPER_ADMIN' && (!hit || accepted >= expected)) {
+        if (enableRequestTimeLimitation && user.role !== 'SUPER_ADMIN' && (!hit || (expected > 0 && accepted >= expected))) {
             throw createError({
                 statusCode: 403,
                 message: '投稿功能已关闭'

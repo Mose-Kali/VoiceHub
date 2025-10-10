@@ -4,20 +4,98 @@
       <h2 class="title">投稿管理
       </h2>
       <div class="settings-toggle">
-        <span class="label">当前投稿开放状态</span>
-        <div :class="{ 'enabled': hitRequestTime, 'disabled': !hitRequestTime }" class="status-badge">
-          {{ hitRequestTime ? '开放中' : '已关闭' }}
-        </div>
-        <span class="label">启用投稿</span>
+        <span class="label">投稿功能</span>
         <label class="toggle-switch">
           <input v-model="enableRequest" type="checkbox" @change="updateSystemSettings">
           <span class="slider round"></span>
         </label>
-        <span class="label">启用投稿开放时段选择</span>
-        <label class="toggle-switch">
-          <input v-model="enableRequestTimeLimitation" type="checkbox" @change="updateSystemSettings">
-          <span class="slider round"></span>
+        <span class="status-text">{{ enableRequest ? '已开启' : '已关闭' }}</span>
+        
+        <div v-if="enableRequest" class="time-limitation-setting">
+          <span class="label">使用投稿开放时段限制</span>
+          <label class="toggle-switch">
+            <input v-model="enableRequestTimeLimitation" type="checkbox" @change="updateSystemSettings">
+            <span class="slider round"></span>
+          </label>
+          <span class="status-text">{{ enableRequestTimeLimitation ? '已启用' : '已禁用' }}</span>
+          
+          <div v-if="enableRequestTimeLimitation" class="current-status">
+            <span class="label">当前时段状态：</span>
+            <div :class="{ 'enabled': hitRequestTime, 'disabled': !hitRequestTime }" class="status-badge">
+              {{ hitRequestTime ? '开放中' : '已关闭' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 投稿限额设置 -->
+    <div class="submission-limits-section">
+      <h3 class="section-title">投稿限额设置</h3>
+      
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input
+              v-model="submissionLimitSettings.enableSubmissionLimit"
+              type="checkbox"
+              @change="updateSubmissionLimitSettings"
+          />
+          <span class="checkbox-text">启用投稿限额</span>
         </label>
+        <small class="help-text">开启后将限制用户的投稿频率</small>
+      </div>
+
+      <div v-if="submissionLimitSettings.enableSubmissionLimit" class="submission-limits">
+        <div class="limit-type-selection">
+          <label class="radio-label">
+            <input
+                :checked="limitType === 'daily'"
+                name="limitType"
+                type="radio"
+                value="daily"
+                @change="handleLimitTypeChange('daily')"
+            />
+            <span class="radio-text">每日限额</span>
+          </label>
+          <label class="radio-label">
+            <input
+                :checked="limitType === 'weekly'"
+                name="limitType"
+                type="radio"
+                value="weekly"
+                @change="handleLimitTypeChange('weekly')"
+            />
+            <span class="radio-text">每周限额</span>
+          </label>
+        </div>
+
+        <div v-if="limitType === 'daily'" class="form-group">
+          <label for="dailySubmissionLimit">每日投稿限额</label>
+          <input
+              id="dailySubmissionLimit"
+              v-model.number="submissionLimitSettings.dailySubmissionLimit"
+              max="100"
+              min="0"
+              placeholder="请输入每日最大投稿数量"
+              type="number"
+              @input="updateSubmissionLimitSettings"
+          />
+          <small class="help-text">每个用户每天最多可以投稿的歌曲数量，设置为0表示关闭投稿功能</small>
+        </div>
+
+        <div v-if="limitType === 'weekly'" class="form-group">
+          <label for="weeklySubmissionLimit">每周投稿限额</label>
+          <input
+              id="weeklySubmissionLimit"
+              v-model.number="submissionLimitSettings.weeklySubmissionLimit"
+              max="500"
+              min="0"
+              placeholder="请输入每周最大投稿数量"
+              type="number"
+              @input="updateSubmissionLimitSettings"
+          />
+          <small class="help-text">每个用户每周最多可以投稿的歌曲数量，设置为0表示关闭投稿功能</small>
+        </div>
       </div>
     </div>
 
@@ -213,7 +291,7 @@
 </template>
 
 <script lang="ts" setup>
-import {onMounted, reactive, ref} from 'vue'
+import {computed, onMounted, reactive, ref} from 'vue'
 import {useAuth} from '~/composables/useAuth'
 import type {RequestTime} from '~/types'
 
@@ -232,6 +310,25 @@ const formError = ref('')
 const enableRequestTimeLimitation = ref(false)
 const hitRequestTime = ref(false)
 const enableRequest = ref(true)
+
+// 投稿限额设置
+const submissionLimitSettings = reactive({
+  enableSubmissionLimit: false,
+  dailySubmissionLimit: 5,
+  weeklySubmissionLimit: null
+})
+
+// 限额类型计算属性
+const limitType = computed(() => {
+  if (submissionLimitSettings.dailySubmissionLimit !== null && submissionLimitSettings.dailySubmissionLimit !== undefined) {
+    return 'daily'
+  }
+  if (submissionLimitSettings.weeklySubmissionLimit !== null && submissionLimitSettings.weeklySubmissionLimit !== undefined) {
+    return 'weekly'
+  }
+  return 'daily'
+})
+
 // 表单数据
 const formData = reactive({
   id: 0,
@@ -248,6 +345,7 @@ onMounted(async () => {
   await fetchRequestTimes()
   await fetchSystemSettings()
   await fetchRequestTimeHit()
+  await fetchSubmissionLimitSettings()
 })
 
 // 获取投稿开放时段列表
@@ -394,6 +492,74 @@ const updateSystemSettings = async () => {
   } catch (err: any) {
     error.value = err.message || '更新系统设置失败'
   }
+}
+
+// 获取投稿限额设置
+const fetchSubmissionLimitSettings = async () => {
+  try {
+    const authConfig = getAuthConfig()
+    const response = await fetch('/api/admin/system-settings', {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      ...authConfig
+    })
+
+    if (!response.ok) {
+      throw new Error('获取投稿限额设置失败')
+    }
+
+    const data = await response.json()
+    submissionLimitSettings.enableSubmissionLimit = data.enableSubmissionLimit || false
+    submissionLimitSettings.dailySubmissionLimit = data.dailySubmissionLimit !== undefined ? data.dailySubmissionLimit : 5
+    submissionLimitSettings.weeklySubmissionLimit = data.weeklySubmissionLimit !== undefined ? data.weeklySubmissionLimit : null
+  } catch (err: any) {
+    console.error('获取投稿限额设置失败:', err.message)
+  }
+}
+
+// 更新投稿限额设置
+const updateSubmissionLimitSettings = async () => {
+  if (!isAdmin.value) return
+
+  try {
+    const authConfig = getAuthConfig()
+    const response = await fetch('/api/admin/system-settings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        enableSubmissionLimit: submissionLimitSettings.enableSubmissionLimit,
+        dailySubmissionLimit: submissionLimitSettings.dailySubmissionLimit,
+        weeklySubmissionLimit: submissionLimitSettings.weeklySubmissionLimit
+      }),
+      ...authConfig
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || '更新投稿限额设置失败')
+    }
+  } catch (err: any) {
+    error.value = err.message || '更新投稿限额设置失败'
+  }
+}
+
+// 处理限额类型变化
+const handleLimitTypeChange = (type: string) => {
+  if (type === 'daily') {
+    submissionLimitSettings.weeklySubmissionLimit = null
+    if (submissionLimitSettings.dailySubmissionLimit === null || submissionLimitSettings.dailySubmissionLimit === undefined) {
+      submissionLimitSettings.dailySubmissionLimit = 5
+    }
+  } else if (type === 'weekly') {
+    submissionLimitSettings.dailySubmissionLimit = null
+    if (submissionLimitSettings.weeklySubmissionLimit === null || submissionLimitSettings.weeklySubmissionLimit === undefined) {
+      submissionLimitSettings.weeklySubmissionLimit = 20
+    }
+  }
+  updateSubmissionLimitSettings()
 }
 
 // 编辑投稿开放时段
@@ -599,16 +765,111 @@ const cancelForm = () => {
   font-weight: 600;
 }
 
-.settings-toggle {
+/* 投稿开关区域样式 */
+.header-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.title {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-.label {
-  color: #cccccc;
-  font-size: 0.875rem;
+.title::before {
+  content: "📝";
+  font-size: 1.3rem;
+}
+
+.settings-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.settings-toggle > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(79, 70, 229, 0.08);
+  border: 1px solid rgba(79, 70, 229, 0.15);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.settings-toggle > div:first-child:hover {
+  background: rgba(79, 70, 229, 0.12);
+  border-color: rgba(79, 70, 229, 0.25);
+}
+
+.time-limitation-setting {
+  margin-left: 1.5rem;
+  padding: 1rem 0 1rem 1.5rem;
+  border-left: 3px solid rgba(79, 70, 229, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 0 8px 8px 0;
+  transition: all 0.3s ease;
+}
+
+.time-limitation-setting:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-left-color: rgba(79, 70, 229, 0.5);
+}
+
+.time-limitation-setting > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.15);
+  border-radius: 6px;
+}
+
+.current-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: 1.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.current-status:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.status-text {
+  color: #a3a3a3;
+  font-size: 0.75rem;
+  font-style: italic;
   font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.label {
+  color: #e5e7eb;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .toggle-switch {
@@ -955,63 +1216,460 @@ input:checked + .slider:before {
   padding: 1.5rem;
 }
 
-.form-group {
-  margin-bottom: 1.25rem;
+/* 投稿限额设置区域样式 */
+.submission-limits-section {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
 }
 
-.form-control {
-  width: 100%;
-  padding: 0.75rem;
-  background: #1a1a1a;
-  border: 1px solid #2a2a2a;
+.section-title {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-title::before {
+  content: "⚙️";
+  font-size: 1.1rem;
+}
+
+.submission-limits {
+  margin-top: 1rem;
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
-  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.submission-limits:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.limit-type-selection {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: rgba(79, 70, 229, 0.1);
+  border: 1px solid rgba(79, 70, 229, 0.2);
+  border-radius: 8px;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 500;
+  color: #e5e7eb;
+  transition: color 0.2s ease;
+  position: relative;
+}
+
+.radio-label:hover {
   color: #ffffff;
 }
 
-.form-control:focus {
-  border-color: #4f46e5;
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.25);
+.radio-label input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  margin-right: 0.75rem;
+  cursor: pointer;
+  accent-color: #4f46e5;
 }
 
-textarea.form-control {
-  min-height: 100px;
-  resize: vertical;
-}
-
-.checkbox-group {
-  display: flex;
-  align-items: center;
+.radio-text {
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
   cursor: pointer;
+  font-weight: 500;
+  color: #e5e7eb;
+  transition: color 0.2s ease;
+  padding: 0.5rem 0;
+}
+
+.checkbox-label:hover {
+  color: #ffffff;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-right: 0.75rem;
+  cursor: pointer;
+  accent-color: #4f46e5;
+}
+
+.checkbox-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+  color: #d1d5db;
+  font-size: 0.875rem;
+}
+
+.form-group input[type="number"] {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.form-group input[type="number"]:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.form-group input[type="number"]:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.help-text {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  line-height: 1.4;
+}
+
+/* 表单控件统一样式 */
+.form-control {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #ffffff;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.form-control:focus {
+  border-color: #4f46e5;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.form-control:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.form-control::placeholder {
+  color: #9ca3af;
+  opacity: 1;
+}
+
+textarea.form-control {
+  min-height: 120px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+/* 复选框和单选框统一样式 */
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checkbox-label,
+.radio-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 500;
+  color: #e5e7eb;
+  transition: all 0.2s ease;
+  padding: 0.5rem 0;
   user-select: none;
+  position: relative;
 }
 
-.checkbox-label input {
-  margin-right: 0.5rem;
+.checkbox-label:hover,
+.radio-label:hover {
+  color: #ffffff;
+  transform: translateX(2px);
 }
 
+.checkbox-label input[type="checkbox"],
+.radio-label input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  margin-right: 0.75rem;
+  cursor: pointer;
+  accent-color: #4f46e5;
+  transition: all 0.2s ease;
+}
+
+.checkbox-label input[type="checkbox"]:hover,
+.radio-label input[type="radio"]:hover {
+  transform: scale(1.1);
+}
+
+.checkbox-text,
+.radio-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* 表单错误和操作按钮样式 */
 .form-error {
   margin-bottom: 1rem;
-  padding: 0.75rem;
+  padding: 0.875rem 1rem;
   background: rgba(239, 68, 68, 0.1);
-  color: rgb(252, 165, 165);
-  border-radius: 0.375rem;
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 响应式布局支持 */
+@media (max-width: 768px) {
+  .header-section {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .title {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .settings-toggle > div:first-child {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.875rem;
+  }
+
+  .time-limitation-setting {
+    margin-left: 0;
+    padding: 0.875rem;
+    border-left: none;
+    border-top: 3px solid rgba(79, 70, 229, 0.3);
+    border-radius: 8px;
+  }
+
+  .time-limitation-setting > div:first-child {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.5rem;
+  }
+
+  .current-status {
+    margin-left: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .submission-limits-section {
+    padding: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .section-title {
+    font-size: 1.125rem;
+    margin-bottom: 1rem;
+  }
+
+  .submission-limits {
+    padding: 1rem;
+  }
+
+  .limit-type-selection {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.875rem;
+  }
+
+  .form-group input[type="number"] {
+    padding: 0.75rem 0.875rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .modal-content {
+    margin: 1rem;
+    max-width: calc(100vw - 2rem);
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-section {
+    padding: 0.75rem;
+  }
+
+  .title {
+    font-size: 1.125rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .title::before {
+    font-size: 1.1rem;
+  }
+
+  .settings-toggle {
+    gap: 1rem;
+  }
+
+  .settings-toggle > div:first-child {
+    padding: 0.75rem;
+  }
+
+  .time-limitation-setting {
+    padding: 0.75rem;
+  }
+
+  .submission-limits-section {
+    padding: 0.75rem;
+  }
+
+  .section-title {
+    font-size: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .submission-limits {
+    padding: 0.75rem;
+  }
+
+  .limit-type-selection {
+    padding: 0.75rem;
+  }
+
+  .checkbox-label,
+  .radio-label {
+    font-size: 0.8rem;
+  }
+
+  .form-group label {
+    font-size: 0.8rem;
+  }
+
+  .form-group input[type="number"] {
+    padding: 0.625rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .help-text {
+    font-size: 0.7rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .header-section {
+    padding: 2rem;
+  }
+
+  .title {
+    font-size: 1.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .settings-toggle {
+    gap: 1.5rem;
+  }
+
+  .settings-toggle > div:first-child {
+    padding: 1.25rem;
+  }
+
+  .time-limitation-setting {
+    padding: 1.25rem 0 1.25rem 2rem;
+  }
+
+  .submission-limits-section {
+    padding: 2rem;
+    margin-top: 2.5rem;
+  }
+
+  .section-title {
+    font-size: 1.375rem;
+    margin-bottom: 2rem;
+  }
+
+  .submission-limits {
+    padding: 1.5rem;
+  }
+
+  .limit-type-selection {
+    padding: 1.25rem;
+    gap: 2rem;
+  }
+
+  .form-group {
+    margin-bottom: 2rem;
+  }
 }
 
 .delete-confirm .warning {
-  color: rgb(252, 165, 165);
-  margin-top: 0.5rem;
+  color: #fca5a5;
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 </style>
