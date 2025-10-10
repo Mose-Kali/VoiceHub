@@ -1,5 +1,5 @@
 -- 创建 RequestTime 表
-CREATE TABLE "RequestTime" (
+CREATE TABLE IF NOT EXISTS "RequestTime" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"createdAt" timestamp(6) DEFAULT now() NOT NULL,
 	"updatedAt" timestamp(6) DEFAULT now() NOT NULL,
@@ -17,5 +17,6 @@ CREATE TABLE "RequestTime" (
 ALTER TABLE "Song" ADD COLUMN "hitRequestId" integer;
 
 -- 为 SystemSettings 表添加投稿限制相关字段
-ALTER TABLE "SystemSettings" ADD COLUMN "enableRequestTimeLimitation" boolean DEFAULT false NOT NULL;
-ALTER TABLE "SystemSettings" ADD COLUMN "forceBlockAllRequests" boolean DEFAULT false NOT NULL;
+ALTER TABLE "Song" ADD COLUMN IF NOT EXISTS "hitRequestId" integer;
+ALTER TABLE "SystemSettings" ADD COLUMN IF NOT EXISTS "enableRequestTimeLimitation" boolean DEFAULT false NOT NULL;
+ALTER TABLE "SystemSettings" ADD COLUMN IF NOT EXISTS "forceBlockAllRequests" boolean DEFAULT false NOT NULL;
