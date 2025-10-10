@@ -146,7 +146,7 @@ export const systemSettings = pgTable('SystemSettings', {
   smtpFromEmail: text('smtpFromEmail'),
   smtpFromName: text('smtpFromName').default('校园广播站'),
   enableRequestTimeLimitation: boolean('enableRequestTimeLimitation').default(false).notNull(),
-  forceBlockAllRequests: boolean().default(false).notNull(),
+  forceBlockAllRequests: boolean('forceBlockAllRequests').default(false).notNull(),
 });
 
 // 歌曲黑名单表

@@ -13,13 +13,6 @@ export const semester = pgTable("Semester", {
 	isActive: boolean().default(false).notNull(),
 });
 
-export const drizzleMigrations = pgTable("__drizzle_migrations__", {
-	id: serial().primaryKey().notNull(),
-	hash: text().notNull(),
-	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
-	createdAt: bigint("created_at", { mode: "number" }),
-});
-
 export const requestTime = pgTable("RequestTime", {
 	id: serial().primaryKey().notNull(),
 	createdAt: timestamp({ precision: 6, mode: 'string' }).defaultNow().notNull(),
@@ -34,6 +27,13 @@ export const requestTime = pgTable("RequestTime", {
 	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
 	accepted: bigint({ mode: "number" }).default(0).notNull(),
 	past: boolean().default(false).notNull(),
+});
+
+export const drizzleMigrations = pgTable("__drizzle_migrations__", {
+	id: serial().primaryKey().notNull(),
+	hash: text().notNull(),
+	// You can use { mode: "bigint" } if numbers are exceeding js number limitations
+	createdAt: bigint("created_at", { mode: "number" }),
 });
 
 export const user = pgTable("User", {
