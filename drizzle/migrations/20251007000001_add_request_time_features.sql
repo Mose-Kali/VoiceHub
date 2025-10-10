@@ -14,9 +14,8 @@ CREATE TABLE IF NOT EXISTS "RequestTime" (
 );
 
 -- 为 Song 表添加 hitRequestId 字段
-ALTER TABLE "Song" ADD COLUMN "hitRequestId" integer;
+ALTER TABLE "Song" ADD COLUMN IF NOT EXISTS "hitRequestId" integer;
 
 -- 为 SystemSettings 表添加投稿限制相关字段
-ALTER TABLE "Song" ADD COLUMN IF NOT EXISTS "hitRequestId" integer;
 ALTER TABLE "SystemSettings" ADD COLUMN IF NOT EXISTS "enableRequestTimeLimitation" boolean DEFAULT false NOT NULL;
 ALTER TABLE "SystemSettings" ADD COLUMN IF NOT EXISTS "forceBlockAllRequests" boolean DEFAULT false NOT NULL;
