@@ -95,8 +95,8 @@ export default defineEventHandler(async (event) => {
             const updatedRequestTimeResult = await db.update(requestTimes)
                 .set({
                     name: body.name,
-                    startTime: body.startTime || null,
-                    endTime: body.endTime || null,
+                    startTime: body.startTime ? new Date(body.startTime) : null,
+                    endTime: body.endTime ? new Date(body.endTime) : null,
                     description: body.description ?? null,
                     enabled: body.enabled !== undefined ? body.enabled : true,
                     expected: body.expected ?? null,

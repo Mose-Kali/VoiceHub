@@ -67,21 +67,48 @@ export default defineEventHandler(async (event) => {
             })
         }
 
-        const hitRequestTimeResult = await db.select().from(requestTimes).where(or(and(lte(requestTimes.startTime, body.endTime), gt(requestTimes.endTime, body.endTime)), and(lte(requestTimes.startTime, body.startTime), gt(requestTimes.endTime, body.startTime)))).limit(1)
-        const hitRequestTime = hitRequestTimeResult[0]
+        // 时间冲突检查（仅当提供了时间时才检查）
+        if (body.startTime || body.endTime) {
+            const startTime = body.startTime ? new Date(body.startTime) : null
+            const endTime = body.endTime ? new Date(body.endTime) : null
+            
+            let conflictConditions = []
+            
+            if (startTime && endTime) {
+                // 如果提供了开始和结束时间，检查是否与现有时段重叠
+                conflictConditions.push(
+                    and(lte(requestTimes.startTime, endTime), gt(requestTimes.endTime, startTime))
+                )
+            } else if (startTime) {
+                // 如果只提供了开始时间，检查是否与现有时段的结束时间冲突
+                conflictConditions.push(
+                    and(lte(requestTimes.startTime, startTime), gt(requestTimes.endTime, startTime))
+                )
+            } else if (endTime) {
+                // 如果只提供了结束时间，检查是否与现有时段的开始时间冲突
+                conflictConditions.push(
+                    and(lte(requestTimes.startTime, endTime), gt(requestTimes.endTime, endTime))
+                )
+            }
+            
+            if (conflictConditions.length > 0) {
+                const hitRequestTimeResult = await db.select().from(requestTimes).where(or(...conflictConditions)).limit(1)
+                const hitRequestTime = hitRequestTimeResult[0]
 
-        if (hitRequestTime) {
-            throw createError({
-                statusCode: 400,
-                message: '投稿开放时段时间冲突，请使用其他时间'
-            })
+                if (hitRequestTime) {
+                    throw createError({
+                        statusCode: 400,
+                        message: '投稿开放时段时间冲突，请使用其他时间'
+                    })
+                }
+            }
         }
 
         // 创建新的投稿开放时段
         const newRequestTimeResult = await db.insert(requestTimes).values({
             name: body.name,
-            startTime: body.startTime || null,
-            endTime: body.endTime || null,
+            startTime: body.startTime ? new Date(body.startTime) : null,
+            endTime: body.endTime ? new Date(body.endTime) : null,
             description: body.description || null,
             enabled: body.enabled !== undefined ? body.enabled : true,
             expected: body.expected || 0,

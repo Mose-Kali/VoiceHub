@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
         //}
         await db.update(requestTimes)
             .set({past: true})
-            .where(lt(requestTimes.endTime, new Date().toLocaleString()))
+            .where(lt(requestTimes.endTime, new Date()))
         // 缓存中没有，从数据库获取所有投稿开放时段
         const requestTimesResult = await db.select().from(requestTimes)
             .orderBy(desc(requestTimes.enabled), asc(requestTimes.startTime))

@@ -31,10 +31,10 @@ export default defineEventHandler(async (event) => {
         let expected = 0;
         let hitRequestTimeItem = null
 
-        if (enableRequestTimeLimitation) {
+        if (enableRequestTimeLimitation && user.role !== 'SUPER_ADMIN') {
             const now = new Date();
 
-            const hitRequestTimeResult = await db.select().from(requestTimes).where(and(and(lte(requestTimes.startTime, now.toLocaleString()), gt(requestTimes.endTime, now.toLocaleString())), eq(requestTimes.enabled, true))).limit(1)
+            const hitRequestTimeResult = await db.select().from(requestTimes).where(and(and(lte(requestTimes.startTime, now), gt(requestTimes.endTime, now)), eq(requestTimes.enabled, true))).limit(1)
             const hitRequestTime = hitRequestTimeResult[0]
             hitRequestTimeItem = hitRequestTimeResult[0]
 
@@ -46,13 +46,13 @@ export default defineEventHandler(async (event) => {
         } else {
             hit = true;
         }
-        if (forceBlockAllRequests) {
+        if (forceBlockAllRequests && user.role !== 'SUPER_ADMIN') {
             throw createError({
                 statusCode: 403,
                 message: '投稿功能已关闭'
             })
         }
-        if (enableRequestTimeLimitation && (!hit || accepted >= expected)) {
+        if (enableRequestTimeLimitation && user.role !== 'SUPER_ADMIN' && (!hit || accepted >= expected)) {
             throw createError({
                 statusCode: 403,
                 message: '投稿功能已关闭'
@@ -217,7 +217,7 @@ export default defineEventHandler(async (event) => {
         }).returning()
         const song = songResult[0]
 
-        if(enableRequestTimeLimitation && hitRequestTimeItem){
+        if(enableRequestTimeLimitation && user.role !== 'SUPER_ADMIN' && hitRequestTimeItem){
             await db.update(requestTimes).set({
                 accepted: accepted + 1
             }).where(eq(requestTimes.id, hitRequestTimeItem.id))

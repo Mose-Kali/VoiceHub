@@ -399,11 +399,26 @@ const updateSystemSettings = async () => {
 // 编辑投稿开放时段
 const editRequestTime = (RequestTime: RequestTime) => {
   editingRequestTime.value = RequestTime
+  
+  // 将 Date 对象转换为 datetime-local 输入所需的格式
+  const formatDateForInput = (date: string | Date | null) => {
+    if (!date) return ''
+    const d = new Date(date)
+    if (isNaN(d.getTime())) return ''
+    // 转换为本地时间的 YYYY-MM-DDTHH:MM 格式
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    const hours = String(d.getHours()).padStart(2, '0')
+    const minutes = String(d.getMinutes()).padStart(2, '0')
+    return `${year}-${month}-${day}T${hours}:${minutes}`
+  }
+  
   Object.assign(formData, {
     id: RequestTime.id,
     name: RequestTime.name,
-    startTime: RequestTime.startTime,
-    endTime: RequestTime.endTime,
+    startTime: formatDateForInput(RequestTime.startTime),
+    endTime: formatDateForInput(RequestTime.endTime),
     description: RequestTime.description || '',
     enabled: RequestTime.enabled,
     expected: RequestTime.expected || 0

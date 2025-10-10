@@ -46,12 +46,12 @@
           <div v-if="(user && submissionStatus && submissionStatus.limitEnabled) || (requestTimeStatus && (!requestTimeStatus.hit || requestTimeStatus.enabled))" class="submission-status-horizontal">
 
             <div v-if="requestTimeStatus && (!requestTimeStatus.hit || requestTimeStatus.accepted >= requestTimeStatus.expected)" class="submission-closed-notice">
-              <span class="closed-icon">🚫</span>
+              <span class="closed-icon">�</span>
               <span class="closed-text">投稿功能已关闭</span>
             </div>
             <!-- 超级管理员提示 -->
             <div v-else-if="user && (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') && (requestTimeStatus && !requestTimeStatus.enabled)" class="admin-notice-horizontal">
-              <span class="admin-icon">👑</span>
+              <span class="admin-icon">�</span>
               <span class="admin-text">您是管理员，不受投稿限制</span>
             </div>
 
