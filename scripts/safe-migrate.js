@@ -104,29 +104,12 @@ async function safeMigrate() {
       fs.mkdirSync(migrationsPath, { recursive: true });
     }
     
-    // 4. 生成迁移文件（如果需要）
-    log('生成数据库迁移文件...', 'cyan');
-    
-    // 设置非交互式环境变量
-    const nonInteractiveEnv = {
-      ...process.env,
-      DRIZZLE_KIT_FORCE: 'true',
-      CI: 'true',
-      NODE_ENV: 'production'
-    };
-    
-    if (!safeExec('npm run db:generate', { env: nonInteractiveEnv })) {
-      logWarning('迁移文件生成失败，尝试直接同步...');
-    } else {
-      logSuccess('迁移文件生成完成');
-    }
-    
-    // 5. 预处理数据冲突
+    // 4. 预处理数据冲突
     log('🔍 检查并处理数据冲突...', 'cyan');
     await handleDataConflicts();
     
-    // 6. 统一迁移策略：优先使用 push 同步，然后执行 migrate
-    log('🚦 统一迁移策略：优先 push 同步，后执行 migrate', 'cyan');
+    // 5. 迁移策略：强制使用 push 同步 schema
+    log('🚦 迁移策略：强制使用 push 同步 schema', 'cyan');
 
     const env = {
       ...process.env,
@@ -135,21 +118,14 @@ async function safeMigrate() {
       NODE_ENV: 'production'
     };
 
-    // 首先，强制同步 schema 以解决潜在的约束问题
-    if (safeExec('cd .. && npx drizzle-kit push --force --accept-warnings --config=drizzle.config.ts', { env })) {
-      logSuccess('数据库 schema 同步成功');
-    } else {
-      logWarning('数据库 schema 同步失败，尝试继续执行标准迁移...');
-    }
-
-    // 然后，尝试标准迁移
-    if (safeExec('cd .. && npx drizzle-kit migrate --config=drizzle.config.ts', { env })) {
-      logSuccess('数据库迁移成功');
-    } else {
-      logWarning('标准迁移失败，但 schema 可能已通过 push 更新');
+    // 强制同步 schema
+    if (!safeExec('cd .. && npx drizzle-kit push --force --accept-warnings --config=drizzle.config.ts', { env })) {
+      throw new Error('数据库 schema 同步失败');
     }
     
-    // 8. 验证迁移结果
+    logSuccess('数据库 schema 同步成功');
+    
+    // 6. 验证迁移结果
     log('✅ 数据库迁移流程完成！', 'green');
     
   } catch (error) {
