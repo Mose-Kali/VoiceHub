@@ -119,6 +119,17 @@ async function safeMigrate() {
       logWarning('迁移文件生成失败，尝试直接同步...');
     } else {
       logSuccess('迁移文件生成完成');
+
+// Post-process the generated migration to add IF EXISTS to DROP CONSTRAINT
+const migrationsDir = path.join(projectRoot, 'drizzle/migrations');
+const migrationFiles = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
+const latestMigration = path.join(migrationsDir, migrationFiles[migrationFiles.length - 1]);
+if (latestMigration) {
+  let sql = fs.readFileSync(latestMigration, 'utf8');
+  sql = sql.replace(/DROP CONSTRAINT /g, 'DROP CONSTRAINT IF EXISTS ');
+  fs.writeFileSync(latestMigration, sql);
+  log('✅ 已添加 IF EXISTS 到 DROP CONSTRAINT 语句', 'cyan');
+}
     }
     
     // 5. 预处理数据冲突
