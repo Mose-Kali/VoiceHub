@@ -214,19 +214,17 @@ export const userStatusLogs = pgTable('user_status_logs', {
 });
 
 export const requestTimes = pgTable("RequestTime", {
-  id: serial().primaryKey().notNull(),
-  createdAt: timestamp({ precision: 6, mode: 'string' }).defaultNow().notNull(),
-  updatedAt: timestamp({ precision: 6, mode: 'string' }).defaultNow().notNull(),
-  name: text().notNull(),
-  startTime: timestamp({ mode: 'string' }).notNull(),
-  endTime: timestamp({ mode: 'string' }).notNull(),
-  enabled: boolean().default(true).notNull(),
-  description: text(),
-  // You can use { mode: "bigint" } if numbers are exceeding js number limitations
-  expected: bigint({ mode: "number" }).default(0).notNull(),
-  // You can use { mode: "bigint" } if numbers are exceeding js number limitations
-  accepted: bigint({ mode: "number" }).default(0).notNull(),
-  past: boolean().default(false).notNull(),
+  id: serial('id').primaryKey(),
+  createdAt: timestamp('createdAt', { precision: 6 }).defaultNow().notNull(),
+  updatedAt: timestamp('updatedAt', { precision: 6 }).defaultNow().notNull(),
+  name: text('name').notNull(),
+  startTime: timestamp('startTime').notNull(),
+  endTime: timestamp('endTime').notNull(),
+  enabled: boolean('enabled').default(true).notNull(),
+  description: text('description'),
+  expected: bigint('expected', { mode: "number" }).default(0).notNull(),
+  accepted: bigint('accepted', { mode: "number" }).default(0).notNull(),
+  past: boolean('past').default(false).notNull(),
 });
 
 // 关系定义
