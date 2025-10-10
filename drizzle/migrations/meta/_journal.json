@@ -19,13 +19,6 @@
     {
       "idx": 2,
       "version": "7",
-      "when": 1759395147253,
-      "tag": "20251002085227_deep_silver_sable",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
       "when": 1759819299658,
       "tag": "20251007000001_add_request_time_features",
       "breakpoints": true
