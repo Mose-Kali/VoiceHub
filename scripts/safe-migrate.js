@@ -136,7 +136,7 @@ async function safeMigrate() {
     };
 
     // 首先，强制同步 schema 以解决潜在的约束问题
-    if (safeExec('cd .. && npx drizzle-kit push --force --config=drizzle.config.ts', { env })) {
+    if (safeExec('cd .. && npx drizzle-kit push --force --accept-warnings --config=drizzle.config.ts', { env })) {
       logSuccess('数据库 schema 同步成功');
     } else {
       logWarning('数据库 schema 同步失败，尝试继续执行标准迁移...');
