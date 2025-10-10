@@ -139,7 +139,9 @@ async function safeMigrate() {
 
     // 步骤3: 如果标准迁移失败，使用push同步schema
     logWarning('标准迁移失败，使用schema同步...');
-    const pushResult = safeExec('cd .. && npx drizzle-kit push --force --accept-warnings --config=drizzle.config.ts', { env });
+    const pushResult = safeExec('cd .. && npx drizzle-kit push --force --accept-warnings --yes --config=drizzle.config.ts', { 
+      env: { ...env, DRIZZLE_KIT_ACCEPT_ALL: 'true' }
+    });
     
     if (pushResult) {
       logSuccess('Schema同步成功');
