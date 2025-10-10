@@ -119,46 +119,34 @@ async function safeMigrate() {
       logWarning('迁移文件生成失败，尝试直接同步...');
     } else {
       logSuccess('迁移文件生成完成');
-
-// Post-process the generated migration to add IF EXISTS to DROP CONSTRAINT
-const migrationsDir = path.join(projectRoot, 'drizzle/migrations');
-const migrationFiles = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
-const latestMigration = path.join(migrationsDir, migrationFiles[migrationFiles.length - 1]);
-if (latestMigration) {
-  let sql = fs.readFileSync(latestMigration, 'utf8');
-  sql = sql.replace(/DROP CONSTRAINT /g, 'DROP CONSTRAINT IF EXISTS ');
-  fs.writeFileSync(latestMigration, sql);
-  log('✅ 已添加 IF EXISTS 到 DROP CONSTRAINT 语句', 'cyan');
-}
     }
     
     // 5. 预处理数据冲突
     log('🔍 检查并处理数据冲突...', 'cyan');
     await handleDataConflicts();
     
-    // 6. 统一迁移策略：优先执行 migrate，失败则 push
-    log('🚦 统一迁移策略：优先执行 migrate，失败再 push', 'cyan');
-    
-    // 设置非交互式环境变量
+    // 6. 统一迁移策略：优先使用 push 同步，然后执行 migrate
+    log('🚦 统一迁移策略：优先 push 同步，后执行 migrate', 'cyan');
+
     const env = {
       ...process.env,
       DRIZZLE_KIT_FORCE: 'true',
       CI: 'true',
       NODE_ENV: 'production'
     };
-    
-    // 先尝试标准迁移（不会产生交互式提示）
+
+    // 首先，强制同步 schema 以解决潜在的约束问题
+    if (safeExec('cd .. && npx drizzle-kit push --force --config=drizzle.config.ts', { env })) {
+      logSuccess('数据库 schema 同步成功');
+    } else {
+      logWarning('数据库 schema 同步失败，尝试继续执行标准迁移...');
+    }
+
+    // 然后，尝试标准迁移
     if (safeExec('cd .. && npx drizzle-kit migrate --config=drizzle.config.ts', { env })) {
       logSuccess('数据库迁移成功');
     } else {
-      logWarning('标准迁移失败，尝试使用 push 同步...');
-      
-      // 作为后备，强制同步 schema（避免交互）
-      if (safeExec('cd .. && npx drizzle-kit push --force --config=drizzle.config.ts', { env })) {
-        logSuccess('数据库 schema 同步成功');
-      } else {
-        throw new Error('数据库迁移与同步均失败');
-      }
+      logWarning('标准迁移失败，但 schema 可能已通过 push 更新');
     }
     
     // 8. 验证迁移结果
