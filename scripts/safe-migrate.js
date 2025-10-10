@@ -139,8 +139,24 @@ async function safeMigrate() {
 
     // 步骤3: 如果标准迁移失败，使用push同步schema
     logWarning('标准迁移失败，使用schema同步...');
-    const pushResult = safeExec('cd .. && npx drizzle-kit push --force --accept-warnings --yes --config=drizzle.config.ts', { 
-      env: { ...env, DRIZZLE_KIT_ACCEPT_ALL: 'true' }
+    
+    // 使用环境变量和输入重定向来避免交互式提示
+    const pushEnv = { 
+      ...env, 
+      DRIZZLE_KIT_ACCEPT_ALL: 'true',
+      CI: 'true',
+      NODE_ENV: 'production',
+      FORCE_COLOR: '0'
+    };
+    
+    // 尝试使用echo来自动回答提示
+    const pushCommand = process.platform === 'win32' 
+      ? 'echo. | npx drizzle-kit push --force --accept-warnings --config=drizzle.config.ts'
+      : 'echo "" | npx drizzle-kit push --force --accept-warnings --config=drizzle.config.ts';
+    
+    const pushResult = safeExec(`cd .. && ${pushCommand}`, { 
+      env: pushEnv,
+      stdio: 'pipe'
     });
     
     if (pushResult) {
