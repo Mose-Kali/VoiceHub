@@ -151,8 +151,8 @@ async function safeMigrate() {
     
     // 尝试使用echo来自动回答提示
     const pushCommand = process.platform === 'win32' 
-      ? 'echo. | npx drizzle-kit push --force --accept-warnings --config=drizzle.config.ts'
-      : 'echo "" | npx drizzle-kit push --force --accept-warnings --config=drizzle.config.ts';
+      ? 'echo. | npx drizzle-kit push --force --config=drizzle.config.ts'
+      : 'echo "" | npx drizzle-kit push --force --config=drizzle.config.ts';
     
     const pushResult = safeExec(`cd .. && ${pushCommand}`, { 
       env: pushEnv,
